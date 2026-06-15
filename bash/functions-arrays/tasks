@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Description: Print out each item numbered in array 
+
+print_numbered() {
+    local items=("$@")
+    local i=1
+    for item in "${items[@]}"; do
+        echo "$i. $item"
+        ((i++))
+    done
+}
+
+tasks=("Study for exam" "Create project using IaC" "Write python code")
+print_numbered "${tasks[@]}"
