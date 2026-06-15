@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Description: Looping over files
+
+for file in *.txt; do
+    # Handle case when no files match
+    [[ -f "$file" ]] || continue
+    echo "Processing: $file"
+done
