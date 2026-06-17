@@ -1,2 +1,4 @@
-.git/
-.env
+.git
+*.md
+Dockerfile
+.dockerignoregit/
