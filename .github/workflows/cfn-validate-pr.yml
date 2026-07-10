@@ -1,0 +1,75 @@
+name: Validate CloudFormation on PR
+
+on:
+    pull_request:
+        types: [opened, synchronize, closed] # Added closed to catch the merge event
+        paths:
+            - 'ci-cd-pipelines/cloudformation-test-stacks/**'
+    
+permissions:
+    pull-requests: write
+    contents: read
+
+jobs:
+    validate-cfn: # Name of job
+        if: github.event.action != 'closed' # Only run this job if the PR is not closed
+        runs-on: ubuntu-latest # Sets or specifies runner
+        environment: lambda-deploy
+        defaults:
+            run:
+                working-directory: ci-cd-pipelines/cloudformation-test-stacks/ # Sets the working directory for all run steps in this job
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v2
+              with:
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: us-east-1
+
+
+            - name: Validate Cloudformation template
+              run: |
+                aws cloudformation validate-template --template-body file://cloudformation/s3-bucket.yml
+
+
+            - name: Deploy our stack
+              run: |
+                stack_name="pr-test-stack-${{github.event.pull_request.number}}"
+                aws cloudformation create-stack --stack-name $stack_name --template-body file://cloudformation/s3-bucket.yml --parameters ParameterKey=Environment,ParameterValue=test
+
+            - name: Comment on the PR
+              uses: actions/github-script@v6
+              with:
+                github-token: ${{secrets.GITHUB_TOKEN}}
+                script: |
+                    github.rest.issues.createComment({
+                    issue_number: context.issue.number,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    body: 'Cloudformation test stack deployed. Stack name: pr-test-stack-${{ github.event.pull_request.number}}'
+                    })
+                
+    cleanup-on-merge:
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true
+        runs-on: ubuntu-latest
+        environment: lambda-deploy
+        defaults:
+            run:
+                working-directory: ci-cd-pipelines/cloudformation-test-stacks/
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v2
+              with:
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: us-east-1
+
+            - name: Delete the stack after merge
+              if: github.event.pull_request.merged == true
+              run: |
+                stack_name="pr-test-stack-${{github.event.pull_request.number}}"
+                aws cloudformation delete-stack --stack-name $stack_name
