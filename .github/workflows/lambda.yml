@@ -5,7 +5,7 @@ on:
         branches:
           - main
         paths:
-          - 'ci-cd-pipelines/lambda-cicd/lambda/**'
+          - 'ci-cd-pipelines/lambda-cicd/**'
 
 jobs:
     deploy-lambda: # Name of job
@@ -13,7 +13,7 @@ jobs:
         environment: lambda-deploy # Specifies the environment name for the job (containing secrets)
         defaults:
           run:
-            working-directory: ci-cd-pipelines/lambda-cicd/lambda/ # Sets the working directory for all run steps in this job
+            working-directory: ci-cd-pipelines/lambda-cicd/ # Sets the working directory for all run steps in this job
         steps:
             - uses: actions/checkout@v3
 
